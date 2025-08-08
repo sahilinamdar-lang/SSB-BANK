@@ -17,6 +17,27 @@ public class User {
 	private Integer approvedBy; // Nullable
 	private String approvalStatus;
 
+	public User() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+
+	public User(int userId, String fullName, String email, String password, String phoneNumber, String address,
+			Date dateOfBirth, String gender, Timestamp createdAt, Integer approvedBy, String approvalStatus) {
+		super();
+		this.userId = userId;
+		this.fullName = fullName;
+		this.email = email;
+		this.password = password;
+		this.phoneNumber = phoneNumber;
+		this.address = address;
+		this.dateOfBirth = dateOfBirth;
+		this.gender = gender;
+		this.createdAt = createdAt;
+		this.approvedBy = approvedBy;
+		this.approvalStatus = approvalStatus;
+	}
+
 	public int getUserId() {
 		return userId;
 	}

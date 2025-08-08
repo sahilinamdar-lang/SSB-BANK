@@ -9,6 +9,25 @@ public class Transaction {
 	private double amount;
 	private Timestamp transactionDate;
 	private String description;
+	
+	
+
+	
+	public Transaction() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+
+	public Transaction(int transactionId, int accountId, String transactionType, double amount,
+			Timestamp transactionDate, String description) {
+		super();
+		this.transactionId = transactionId;
+		this.accountId = accountId;
+		this.transactionType = transactionType;
+		this.amount = amount;
+		this.transactionDate = transactionDate;
+		this.description = description;
+	}
 
 	public int getTransactionId() {
 		return transactionId;

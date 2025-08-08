@@ -12,6 +12,25 @@ public class Account {
 	private Timestamp createdAt;
 	private int branchId;
 
+	
+	
+	public Account() {
+		super();
+	}
+
+	public Account(int accountId, int userId, String accountNumber, String accountType, double balance, String status,
+			Timestamp createdAt, int branchId) {
+		super();
+		this.accountId = accountId;
+		this.userId = userId;
+		this.accountNumber = accountNumber;
+		this.accountType = accountType;
+		this.balance = balance;
+		this.status = status;
+		this.createdAt = createdAt;
+		this.branchId = branchId;
+	}
+
 	public int getAccountId() {
 		return accountId;
 	}
