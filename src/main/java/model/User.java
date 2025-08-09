@@ -16,6 +16,7 @@ public class User {
 	private Timestamp createdAt;
 	private Integer approvedBy; // Nullable
 	private String approvalStatus;
+	private String role; 
 
 	public User() {
 		super();
@@ -23,7 +24,8 @@ public class User {
 	}
 
 	public User(int userId, String fullName, String email, String password, String phoneNumber, String address,
-			Date dateOfBirth, String gender, Timestamp createdAt, Integer approvedBy, String approvalStatus) {
+			Date dateOfBirth, String gender, Timestamp createdAt, Integer approvedBy, String approvalStatus,
+			String role) {
 		super();
 		this.userId = userId;
 		this.fullName = fullName;
@@ -36,6 +38,7 @@ public class User {
 		this.createdAt = createdAt;
 		this.approvedBy = approvedBy;
 		this.approvalStatus = approvalStatus;
+		this.role = role;
 	}
 
 	public int getUserId() {
@@ -126,4 +129,18 @@ public class User {
 		this.approvalStatus = approvalStatus;
 	}
 
+	public String getRole() {
+		return role;
+	}
+
+	public void setRole(String role) {
+		this.role = role;
+	}
+	
+	
+	
+	
+	
 }
+
+	

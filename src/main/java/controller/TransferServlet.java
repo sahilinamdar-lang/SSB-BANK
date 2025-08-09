@@ -1,41 +1,55 @@
 package controller;
 
-import java.io.IOException;
+import model.User;
+import service.AccountService;
+
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.*;
+import java.io.IOException;
 
-/**
- * Servlet implementation class TransferServlet
- */
 @WebServlet("/TransferServlet")
 public class TransferServlet extends HttpServlet {
-	private static final long serialVersionUID = 1L;
-       
-    /**
-     * @see HttpServlet#HttpServlet()
-     */
-    public TransferServlet() {
-        super();
-        // TODO Auto-generated constructor stub
+
+    private AccountService accountService;
+
+    @Override
+    public void init() {
+        accountService = new AccountService();
     }
 
-	/**
-	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
-	 */
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
-		response.getWriter().append("Served at: ").append(request.getContextPath());
-	}
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        HttpSession session = req.getSession(false);
+        if (session == null || session.getAttribute("loggedUser") == null) {
+            resp.sendRedirect("login.jsp");
+            return;
+        }
 
-	/**
-	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
-	 */
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
-		doGet(request, response);
-	}
+        User user = (User) session.getAttribute("loggedUser");
+        String toUserIdStr = req.getParameter("toUserId");
+        String amountStr = req.getParameter("amount");
+        String description = req.getParameter("description");
 
+        try {
+            int toUserId = Integer.parseInt(toUserIdStr);
+            double amount = Double.parseDouble(amountStr);
+
+            boolean success = accountService.transfer(user.getUserId(), toUserId, amount, description);
+
+            if (success) {
+                req.setAttribute("message", "Transfer successful: $" + amount + " to user ID " + toUserId);
+            } else {
+                req.setAttribute("errorMessage", "Transfer failed. Please check balance or account details.");
+            }
+
+            req.getRequestDispatcher("transfer.jsp").forward(req, resp);
+
+        } catch (NumberFormatException e) {
+            req.setAttribute("errorMessage", "Invalid amount or user ID");
+            req.getRequestDispatcher("transfer.jsp").forward(req, resp);
+        } catch (Exception e) {
+            throw new ServletException(e);
+        }
+    }
 }

@@ -1,10 +1,6 @@
 package dao;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,178 +9,119 @@ import util.DBConnection;
 
 public class AccountDAO {
 
-    // ✅ Create new account
-    public boolean createAccount(Account account) {
-    	   String sql = "INSERT INTO accounts (user_id, account_number, account_type, balance, status, created_at, branch_id) " +
-                   "VALUES (?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+    public Account createAccountWithSequentialNumber(Account account) throws SQLException, ClassNotFoundException {
+        String insertSql = "INSERT INTO accounts (user_id, account_type, balance, status, created_at, branch_id) VALUES (?, ?, ?, ?, ?, ?)";
+        String updateSql = "UPDATE accounts SET account_number = ? WHERE account_id = ?";
 
-        	  ps.setInt(1, account.getUserId());
-              ps.setString(2, account.getAccountNumber());
-              ps.setString(3, account.getAccountType());
-              ps.setDouble(4, account.getBalance());
-              ps.setString(5, account.getStatus());
-              ps.setTimestamp(6, account.getCreatedAt());
-              ps.setInt(7, account.getBranchId());
-              
-            int rows = ps.executeUpdate();
-            if (rows > 0) {
-                ResultSet keys = ps.getGeneratedKeys();
-                if (keys.next()) {
-                    account.setAccountId(keys.getInt(1));
+        try (Connection conn = DBConnection.getConnection()) {
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement insertStmt = conn.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
+                insertStmt.setInt(1, account.getUserId());
+                insertStmt.setString(2, account.getAccountType());
+                insertStmt.setDouble(3, account.getBalance());
+                insertStmt.setString(4, account.getStatus());
+                insertStmt.setTimestamp(5, new Timestamp(System.currentTimeMillis()));
+                insertStmt.setInt(6, account.getBranchId());
+
+                int rows = insertStmt.executeUpdate();
+
+                if (rows == 0) {
+                    conn.rollback();
+                    throw new SQLException("Failed to insert account");
                 }
-                return true;
-            }
 
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-        return false;
+                ResultSet keys = insertStmt.getGeneratedKeys();
+                if (keys.next()) {
+                    int accountId = keys.getInt(1);
+                    String accountNumber = generateAccountNumber(accountId);
+
+                    try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                        updateStmt.setString(1, accountNumber);
+                        updateStmt.setInt(2, accountId);
+                        int updated = updateStmt.executeUpdate();
+
+                        if (updated == 0) {
+                            conn.rollback();
+                            throw new SQLException("Failed to update account number");
+                        }
+
+                        conn.commit();
+
+                        account.setAccountId(accountId);
+                        account.setAccountNumber(accountNumber);
+                        return account;
+                    }
+                } else {
+                    conn.rollback();
+                    throw new SQLException("Failed to retrieve generated account ID");
+                }
+
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
     }
 
-    // ✅ Get account by ID
-    public Account getAccountById(int accountId) {
-        String sql = "SELECT * FROM accounts WHERE account_id = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, accountId);
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-                return mapResultSetToAccount(rs);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-        return null;
+    private String generateAccountNumber(int accountId) {
+        return String.format("SSB%06d", accountId);
     }
 
-    // ✅ Get account by account number
-    public Account getAccountByNumber(String accountNumber) {
-        String sql = "SELECT * FROM accounts WHERE account_number = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, accountNumber);
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-                return mapResultSetToAccount(rs);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-        return null;
-    }
-
-    // ✅ Get all accounts for a user
-    public List<Account> getAccountsByUserId(int userId) {
-        List<Account> accounts = new ArrayList<>();
-        String sql = "SELECT * FROM accounts WHERE user_id = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, userId);
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-                accounts.add(mapResultSetToAccount(rs));
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-        return accounts;
-    }
-
-    // ✅ Update account balance
-    public boolean updateBalance(int accountId, double newBalance) {
+    // Update balance with existing connection (transaction-safe)
+    public boolean updateBalance(int accountId, double newBalance, Connection conn) throws SQLException {
         String sql = "UPDATE accounts SET balance = ? WHERE account_id = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setDouble(1, newBalance);
             ps.setInt(2, accountId);
             return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-        return false;
+        }
     }
 
-    // ✅ Update account details
-    public boolean updateAccount(Account account) {
-    	 String sql = "UPDATE accounts SET account_number=?, account_type=?, balance=?, status=?, branch_id=? WHERE account_id=?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, account.getAccountNumber());
-            ps.setString(2, account.getAccountType());
-            ps.setDouble(3, account.getBalance());
-            ps.setString(4, account.getStatus());
-            ps.setInt(5, account.getBranchId());
-            ps.setInt(6, account.getAccountId());
-
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-        return false;
+    // Fetch account by userId
+    public List<Account> getAccountsByUserId(int userId) throws SQLException, ClassNotFoundException {
+        List<Account> accounts = new ArrayList<>();
+        String sql = "SELECT * FROM accounts WHERE user_id = ?";
+        
+        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    accounts.add(mapResultSetToAccount(rs));
+                }
+            }
+        }
+        
+        return accounts;
     }
 
-    // ✅ Delete account
-    public boolean deleteAccount(int accountId) {
-        String sql = "DELETE FROM accounts WHERE account_id = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
+    // Fetch account by accountId
+    public Account getAccountByAccountId(int accountId) throws SQLException, ClassNotFoundException {
+        String sql = "SELECT * FROM accounts WHERE account_id = ?";
+        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, accountId);
-            return ps.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-        return false;
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToAccount(rs);
+                }
+            }
+        }
+        return null;
     }
 
-    // 📌 Helper method to map ResultSet → Account object
     private Account mapResultSetToAccount(ResultSet rs) throws SQLException {
-        return new Account(
-        		  rs.getInt("account_id"),
-                  rs.getInt("user_id"),
-                  rs.getString("account_number"),
-                  rs.getString("account_type"),
-                  rs.getDouble("balance"),
-                  rs.getString("status"),
-                  rs.getTimestamp("created_at"),
-                  rs.getInt("branch_id")
-        );
+        Account account = new Account();
+        account.setAccountId(rs.getInt("account_id"));
+        account.setUserId(rs.getInt("user_id"));
+        account.setAccountNumber(rs.getString("account_number"));
+        account.setAccountType(rs.getString("account_type"));
+        account.setBalance(rs.getDouble("balance"));
+        account.setStatus(rs.getString("status"));
+        account.setCreatedAt(rs.getTimestamp("created_at"));
+        account.setBranchId(rs.getInt("branch_id"));
+        return account;
     }
 }

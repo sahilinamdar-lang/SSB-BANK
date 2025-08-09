@@ -1,124 +1,80 @@
 package dao;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
-
 import model.Transaction;
 import util.DBConnection;
 
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
 public class TransactionDAO {
 
-    // ✅ Add a new transaction
-    public boolean addTransaction(Transaction transaction) {
-        String sql = "INSERT INTO transactions (account_id, transaction_type, amount, transaction_date, description) " +
-                     "VALUES (?, ?, ?, ?, ?)";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-
+    public boolean addTransaction(Transaction transaction, Connection conn) throws SQLException {
+        String sql = "INSERT INTO transactions (account_id, amount, transaction_type, description, transaction_date) VALUES (?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, transaction.getAccountId());
-            ps.setString(2, transaction.getTransactionType());
-            ps.setDouble(3, transaction.getAmount());
-            ps.setTimestamp(4, transaction.getTransactionDate());
-            ps.setString(5, transaction.getDescription());
+            ps.setDouble(2, transaction.getAmount());
+            ps.setString(3, transaction.getTransactionType());
+            ps.setString(4, transaction.getDescription());
+            ps.setTimestamp(5, transaction.getTransactionDate());
 
-            int rows = ps.executeUpdate();
-            if (rows > 0) {
-                ResultSet keys = ps.getGeneratedKeys();
-                if (keys.next()) {
-                    transaction.setTransactionId(keys.getInt(1));
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    public List<Transaction> getTransactionsByUserId(int userId) throws SQLException, ClassNotFoundException {
+        String sql = "SELECT t.* FROM transactions t JOIN accounts a ON t.account_id = a.account_id WHERE a.user_id = ?";
+        List<Transaction> transactions = new ArrayList<>();
+
+        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    transactions.add(mapResultSetToTransaction(rs));
                 }
-                return true;
             }
+        }
 
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-        return false;
+        return transactions;
     }
 
-    // ✅ Get transaction by ID
-    public Transaction getTransactionById(int transactionId) {
-        String sql = "SELECT * FROM transactions WHERE transaction_id = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, transactionId);
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-                return mapResultSetToTransaction(rs);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-        return null;
-    }
-
-    // ✅ Get all transactions for an account
-    public List<Transaction> getTransactionsByAccountId(int accountId) {
+    public List<Transaction> getTransactionsByAccountId(int accountId) throws SQLException, ClassNotFoundException {
+        String sql = "SELECT * FROM transactions WHERE account_id = ?";
         List<Transaction> transactions = new ArrayList<>();
-        String sql = "SELECT * FROM transactions WHERE account_id = ? ORDER BY transaction_date DESC";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
 
+        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, accountId);
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-                transactions.add(mapResultSetToTransaction(rs));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    transactions.add(mapResultSetToTransaction(rs));
+                }
             }
+        }
 
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
         return transactions;
     }
 
-    // ✅ Get all transactions (Admin)
-    public List<Transaction> getAllTransactions() {
+    public List<Transaction> getAllTransactions() throws SQLException, ClassNotFoundException {
+        String sql = "SELECT * FROM transactions";
         List<Transaction> transactions = new ArrayList<>();
-        String sql = "SELECT * FROM transactions ORDER BY transaction_date DESC";
-        try (Connection conn = DBConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
 
+        try (Connection conn = DBConnection.getConnection(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 transactions.add(mapResultSetToTransaction(rs));
             }
+        }
 
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
         return transactions;
     }
 
-    // 📌 Helper method to map ResultSet → Transaction
     private Transaction mapResultSetToTransaction(ResultSet rs) throws SQLException {
-        Transaction transaction = new Transaction();
-        transaction.setTransactionId(rs.getInt("transaction_id"));
-        transaction.setAccountId(rs.getInt("account_id"));
-        transaction.setTransactionType(rs.getString("transaction_type"));
-        transaction.setAmount(rs.getDouble("amount"));
-        transaction.setTransactionDate(rs.getTimestamp("transaction_date"));
-        transaction.setDescription(rs.getString("description"));
-        return transaction;
+        Transaction t = new Transaction();
+        t.setTransactionId(rs.getInt("transaction_id"));
+        t.setAccountId(rs.getInt("account_id"));
+        t.setAmount(rs.getDouble("amount"));
+        t.setTransactionType(rs.getString("transaction_type"));
+        t.setDescription(rs.getString("description"));
+        t.setTransactionDate(rs.getTimestamp("transaction_date"));
+        return t;
     }
 }

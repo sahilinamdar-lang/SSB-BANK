@@ -1,11 +1,6 @@
 package dao;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Types;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,186 +9,186 @@ import util.DBConnection;
 
 public class UserDAO {
 
-	public User getUserByEmailAndPassword(String email, String password) {
-		String sql = "select * from users where email =? AND password =?";
+    public User getUserByEmail(String email) {
+        String sql = "SELECT * FROM users WHERE email = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-		try {
-			Connection conn = DBConnection.getConnection();
+            ps.setString(1, email);
+            ResultSet rs = ps.executeQuery();
 
-			PreparedStatement ps = conn.prepareStatement(sql);
+            if (rs.next()) {
+                return extractUserFromResultSet(rs);
+            }
 
-			ps.setString(1, email);
-			ps.setString(2, password);
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
-			ResultSet rs = ps.executeQuery();
+    public boolean createUser(User user) {
+        String sql = "INSERT INTO users (full_name, email, password, phone_number, address, date_of_birth, gender, approved_by, approval_status, role) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-			if (rs.next()) {
-				return extractUserFromResultSet(rs);
-			}
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-		} catch (SQLException e) {
+            ps.setString(1, user.getFullName());
+            ps.setString(2, user.getEmail());
+            ps.setString(3, user.getPassword());
+            ps.setString(4, user.getPhoneNumber());
+            ps.setString(5, user.getAddress());
+            ps.setDate(6, user.getDateOfBirth());
+            ps.setString(7, user.getGender());
 
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
+            if (user.getApprovedBy() != null) {
+                ps.setInt(8, user.getApprovedBy());
+            } else {
+                ps.setNull(8, Types.INTEGER);
+            }
 
-			e.printStackTrace();
-		}
-		return null;
-	}
+            ps.setString(9, user.getApprovalStatus());
+            ps.setString(10, user.getRole());
 
-	public boolean createUser(User user) {
-		String sql = "INSERT INTO users (full_name, email, password, phone_number, address, date_of_birth, gender, approved_by, approval_status) "
-				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                ResultSet keys = ps.getGeneratedKeys();
+                if (keys.next()) {
+                    user.setUserId(keys.getInt(1));
+                }
+                return true;
+            }
 
-		try (Connection conn = DBConnection.getConnection();
-				PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 
-			ps.setString(1, user.getFullName());
+    public User getUserById(int userId) {
+        String sql = "SELECT * FROM users WHERE user_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-			ps.setString(1, user.getFullName());
-			ps.setString(2, user.getEmail());
-			ps.setString(3, user.getPassword());
-			ps.setString(4, user.getPhoneNumber());
-			ps.setString(5, user.getAddress());
-			ps.setDate(6, user.getDateOfBirth());
-			ps.setString(7, user.getGender());
+            ps.setInt(1, userId);
+            ResultSet rs = ps.executeQuery();
 
-			if (user.getApprovedBy() != null) {
-				ps.setInt(8, user.getApprovedBy());
-			} else {
-				ps.setNull(8, Types.INTEGER);
-			}
+            if (rs.next()) {
+                return extractUserFromResultSet(rs);
+            }
 
-			ps.setString(9, user.getApprovalStatus());
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
-			int rows = ps.executeUpdate();
-			if (rows > 0) {
-				ResultSet keys = ps.getGeneratedKeys();
+    public List<User> getAllUsers() {
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT * FROM users";
 
-				if (keys.next()) {
-					user.setUserId(keys.getInt(1));
-				}
-				return true;
-			}
+        try (Connection conn = DBConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
 
-		}
+            while (rs.next()) {
+                users.add(extractUserFromResultSet(rs));
+            }
 
-		catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		} catch (SQLException e) {
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return users;
+    }
 
-			e.printStackTrace();
-		}
-		return false;
+    public boolean updateUser(User user) {
+        String sql = "UPDATE users SET full_name=?, email=?, password=?, phone_number=?, address=?, date_of_birth=?, gender=?, approved_by=?, approval_status=?, role=? WHERE user_id=?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-	}
-	
-	
-	 public User getUserById(int userId) {
-	        String sql = "SELECT * FROM users WHERE user_id = ?";
-	        try (Connection conn = DBConnection.getConnection();
-	             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, user.getFullName());
+            ps.setString(2, user.getEmail());
+            ps.setString(3, user.getPassword());
+            ps.setString(4, user.getPhoneNumber());
+            ps.setString(5, user.getAddress());
+            ps.setDate(6, user.getDateOfBirth());
+            ps.setString(7, user.getGender());
 
-	            ps.setInt(1, userId);
-	            ResultSet rs = ps.executeQuery();
+            if (user.getApprovedBy() != null) {
+                ps.setInt(8, user.getApprovedBy());
+            } else {
+                ps.setNull(8, Types.INTEGER);
+            }
 
-	            if (rs.next()) {
-	                return extractUserFromResultSet(rs);
-	            }
+            ps.setString(9, user.getApprovalStatus());
+            ps.setString(10, user.getRole());
+            ps.setInt(11, user.getUserId());
 
-	        } catch (SQLException e) {
-	            e.printStackTrace();
-	        } catch (ClassNotFoundException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-	        return null;
-	    }
+            return ps.executeUpdate() > 0;
 
-	 public List<User> getAllUsers() {
-	        List<User> users = new ArrayList<>();
-	        String sql = "SELECT * FROM users";
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 
-	        try (Connection conn = DBConnection.getConnection();
-	             Statement stmt = conn.createStatement();
-	             ResultSet rs = stmt.executeQuery(sql)) {
+    public boolean deleteUser(int userId) {
+        String sql = "DELETE FROM users WHERE user_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-	            while (rs.next()) {
-	                users.add(extractUserFromResultSet(rs));
-	            }
+            ps.setInt(1, userId);
+            return ps.executeUpdate() > 0;
 
-	        } catch (SQLException e) {
-	            e.printStackTrace();
-	        } catch (ClassNotFoundException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-	        return users;
-	 }
-	 // update user
-	  public boolean updateUser(User user) {
-	        String sql = "UPDATE users SET full_name=?, email=?, password=?, phone_number=?, address=?, date_of_birth=?, gender=?, approved_by=?, approval_status=? WHERE user_id=?";
-	        try (Connection conn = DBConnection.getConnection();
-	             PreparedStatement ps = conn.prepareStatement(sql)) {
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 
-	            ps.setString(1, user.getFullName());
-	            ps.setString(2, user.getEmail());
-	            ps.setString(3, user.getPassword());
-	            ps.setString(4, user.getPhoneNumber());
-	            ps.setString(5, user.getAddress());
-	            ps.setDate(6, user.getDateOfBirth());
-	            ps.setString(7, user.getGender());
+    // Get users by approval status
+    public List<User> getUsersByApprovalStatus(String status) throws SQLException, ClassNotFoundException {
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT * FROM users WHERE approval_status = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    users.add(extractUserFromResultSet(rs));
+                }
+            }
+        }
+        return users;
+    }
 
-	            if (user.getApprovedBy() != null) {
-	                ps.setInt(8, user.getApprovedBy());
-	            } else {
-	                ps.setNull(8, Types.INTEGER);
-	            }
+    // Update user approval status and approved_by
+    public boolean updateUserApproval(int userId, String status, int managerId) throws SQLException, ClassNotFoundException {
+        String sql = "UPDATE users SET approval_status = ?, approved_by = ? WHERE user_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ps.setInt(2, managerId);
+            ps.setInt(3, userId);
+            return ps.executeUpdate() > 0;
+        }
+    }
 
-	            ps.setString(9, user.getApprovalStatus());
-	            ps.setInt(10, user.getUserId());
-
-	            return ps.executeUpdate() > 0;
-
-	        } catch (SQLException e) {
-	            e.printStackTrace();
-	        } catch (ClassNotFoundException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-	        return false;
-	    }
-
-	    //  Delete user
-	    public boolean deleteUser(int userId) {
-	        String sql = "DELETE FROM users WHERE user_id = ?";
-	        try (Connection conn = DBConnection.getConnection();
-	             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-	            ps.setInt(1, userId);
-	            return ps.executeUpdate() > 0;
-
-	        } catch (SQLException e) {
-	            e.printStackTrace();
-	        } catch (ClassNotFoundException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-	        return false;
-	    }
-
-	 
-	 
-	 
-	 
-	private User extractUserFromResultSet(ResultSet rs) throws SQLException {
-
-		return new User(rs.getInt("user_id"), rs.getString("full_name"), rs.getString("email"),
-				rs.getString("password"), rs.getString("phone_number"), rs.getString("address"),
-				rs.getDate("date_of_birth"), rs.getString("gender"), rs.getTimestamp("created_at"),
-				rs.getObject("approved_by") != null ? rs.getInt("approved_by") : null, rs.getString("approval_status")
-
-		);
-	}
-
+    private User extractUserFromResultSet(ResultSet rs) throws SQLException {
+        return new User(
+            rs.getInt("user_id"),
+            rs.getString("full_name"),
+            rs.getString("email"),
+            rs.getString("password"),
+            rs.getString("phone_number"),
+            rs.getString("address"),
+            rs.getDate("date_of_birth"),
+            rs.getString("gender"),
+            rs.getTimestamp("created_at"),
+            rs.getObject("approved_by") != null ? rs.getInt("approved_by") : null,
+            rs.getString("approval_status"),
+            rs.getString("role")
+        );
+    }
 }

@@ -1,41 +1,52 @@
 package controller;
 
-import java.io.IOException;
+import model.User;
+import service.AccountService;
+
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.*;
+import java.io.IOException;
 
-/**
- * Servlet implementation class WithdrawServlet
- */
 @WebServlet("/WithdrawServlet")
 public class WithdrawServlet extends HttpServlet {
-	private static final long serialVersionUID = 1L;
-       
-    /**
-     * @see HttpServlet#HttpServlet()
-     */
-    public WithdrawServlet() {
-        super();
-        // TODO Auto-generated constructor stub
+
+    private AccountService accountService;
+
+    @Override
+    public void init() {
+        accountService = new AccountService();
     }
 
-	/**
-	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
-	 */
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
-		response.getWriter().append("Served at: ").append(request.getContextPath());
-	}
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        HttpSession session = req.getSession(false);
+        if (session == null || session.getAttribute("loggedUser") == null) {
+            resp.sendRedirect("login.jsp");
+            return;
+        }
 
-	/**
-	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
-	 */
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
-		doGet(request, response);
-	}
+        User user = (User) session.getAttribute("loggedUser");
+        String amountStr = req.getParameter("amount");
 
+        try {
+            double amount = Double.parseDouble(amountStr);
+
+            boolean success = accountService.withdraw(user.getUserId(), amount, "Cash withdrawal");
+
+            if (success) {
+                req.setAttribute("message", "Withdrawal successful: $" + amount);
+            } else {
+                req.setAttribute("errorMessage", "Withdrawal failed. Please check balance or try again.");
+            }
+
+            req.getRequestDispatcher("withdraw.jsp").forward(req, resp);
+
+        } catch (NumberFormatException e) {
+            req.setAttribute("errorMessage", "Invalid amount");
+            req.getRequestDispatcher("withdraw.jsp").forward(req, resp);
+        } catch (Exception e) {
+            throw new ServletException(e);
+        }
+    }
 }

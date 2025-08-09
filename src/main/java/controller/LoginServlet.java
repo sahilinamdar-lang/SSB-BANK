@@ -1,40 +1,45 @@
 package controller;
 
-import java.io.IOException;
+import model.User;
+import service.UserService;
+
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.*;
+import java.io.IOException;
 
-/**
- * Servlet implementation class LoginServlet
- */
 @WebServlet("/LoginServlet")
 public class LoginServlet extends HttpServlet {
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
+    private UserService userService;
 
-    /**
-     * Default constructor. 
-     */
-    public LoginServlet() {
-        // TODO Auto-generated constructor stub
+    @Override
+    public void init() {
+        userService = new UserService();
     }
 
-	/**
-	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
-	 */
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
-		response.getWriter().append("Served at: ").append(request.getContextPath());
-	}
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String email = req.getParameter("email");
+        String password = req.getParameter("password");
 
-	/**
-	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
-	 */
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
-		doGet(request, response);
-	}
+        try {
+            User user = userService.login(email, password);
+            System.out.println("Email: " + email + ", Password: " + password);
+            System.out.println("User from DB: " + user);
 
+            if (user != null) {
+                HttpSession session = req.getSession();
+                session.setAttribute("loggedUser", user);
+                System.out.println("Redirecting to: " + req.getContextPath() + "/dashboard.jsp");
+                resp.sendRedirect(req.getContextPath() + "/dashboard.jsp");
+
+            } else {
+                req.setAttribute("errorMessage", "Invalid email or password");
+                req.getRequestDispatcher("login.jsp").forward(req, resp);
+            }
+        } catch (Exception e) {
+            throw new ServletException(e);
+        }
+    }
 }
