@@ -1,16 +1,17 @@
 package dao;
 
+import model.Account;
+import util.DBConnection;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import model.Account;
-import util.DBConnection;
-
 public class AccountDAO {
 
     public Account createAccountWithSequentialNumber(Account account) throws SQLException, ClassNotFoundException {
-        String insertSql = "INSERT INTO accounts (user_id, account_type, balance, status, created_at, branch_id) VALUES (?, ?, ?, ?, ?, ?)";
+        String insertSql = "INSERT INTO accounts (user_id, account_type, balance, status, created_at, branch_id) " +
+                           "VALUES (?, ?, ?, ?, ?, ?)";
         String updateSql = "UPDATE accounts SET account_number = ? WHERE account_id = ?";
 
         try (Connection conn = DBConnection.getConnection()) {
@@ -24,39 +25,36 @@ public class AccountDAO {
                 insertStmt.setTimestamp(5, new Timestamp(System.currentTimeMillis()));
                 insertStmt.setInt(6, account.getBranchId());
 
-                int rows = insertStmt.executeUpdate();
-
-                if (rows == 0) {
+                if (insertStmt.executeUpdate() == 0) {
                     conn.rollback();
                     throw new SQLException("Failed to insert account");
                 }
 
-                ResultSet keys = insertStmt.getGeneratedKeys();
-                if (keys.next()) {
-                    int accountId = keys.getInt(1);
-                    String accountNumber = generateAccountNumber(accountId);
+                try (ResultSet keys = insertStmt.getGeneratedKeys()) {
+                    if (keys.next()) {
+                        int accountId = keys.getInt(1);
+                        String accountNumber = generateAccountNumber(accountId);
 
-                    try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
-                        updateStmt.setString(1, accountNumber);
-                        updateStmt.setInt(2, accountId);
-                        int updated = updateStmt.executeUpdate();
+                        try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                            updateStmt.setString(1, accountNumber);
+                            updateStmt.setInt(2, accountId);
 
-                        if (updated == 0) {
-                            conn.rollback();
-                            throw new SQLException("Failed to update account number");
+                            if (updateStmt.executeUpdate() == 0) {
+                                conn.rollback();
+                                throw new SQLException("Failed to update account number");
+                            }
+
+                            conn.commit();
+
+                            account.setAccountId(accountId);
+                            account.setAccountNumber(accountNumber);
+                            return account;
                         }
-
-                        conn.commit();
-
-                        account.setAccountId(accountId);
-                        account.setAccountNumber(accountNumber);
-                        return account;
+                    } else {
+                        conn.rollback();
+                        throw new SQLException("Failed to retrieve generated account ID");
                     }
-                } else {
-                    conn.rollback();
-                    throw new SQLException("Failed to retrieve generated account ID");
                 }
-
             } catch (SQLException e) {
                 conn.rollback();
                 throw e;
@@ -67,10 +65,10 @@ public class AccountDAO {
     }
 
     private String generateAccountNumber(int accountId) {
-        return String.format("SSB%06d", accountId);
+        // SSB + zero-padded 3 digits: SSB001, SSB002, etc.
+        return String.format("SSB%03d", accountId);
     }
 
-    // Update balance with existing connection (transaction-safe)
     public boolean updateBalance(int accountId, double newBalance, Connection conn) throws SQLException {
         String sql = "UPDATE accounts SET balance = ? WHERE account_id = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -80,28 +78,26 @@ public class AccountDAO {
         }
     }
 
-    // Fetch account by userId
     public List<Account> getAccountsByUserId(int userId) throws SQLException, ClassNotFoundException {
         List<Account> accounts = new ArrayList<>();
         String sql = "SELECT * FROM accounts WHERE user_id = ?";
-        
-        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
-            
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     accounts.add(mapResultSetToAccount(rs));
                 }
             }
         }
-        
         return accounts;
     }
 
-    // Fetch account by accountId
     public Account getAccountByAccountId(int accountId) throws SQLException, ClassNotFoundException {
         String sql = "SELECT * FROM accounts WHERE account_id = ?";
-        try (Connection conn = DBConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, accountId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {

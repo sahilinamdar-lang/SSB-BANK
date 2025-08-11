@@ -1,49 +1,60 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ page import="model.User, model.Transaction, java.util.List" %>
+<%@ page import="java.util.List, model.Transaction" %>
+
 <%
-    User user = (User) session.getAttribute("loggedUser");
-    if (user == null) {
+    if (session.getAttribute("loggedUser") == null) {
         response.sendRedirect("login.jsp");
         return;
     }
 
     List<Transaction> transactions = (List<Transaction>) request.getAttribute("transactions");
 %>
-<html>
+
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>Transaction History - MyBank</title>
-    <link rel="stylesheet" href="style.css"/>
+    <meta charset="UTF-8" />
+    <title>Transaction History - SSB Bank</title>
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/style.css" />
 </head>
 <body>
-<div class="container">
+<div class="container transaction-history-container">
     <h1>Transaction History</h1>
-    <% if (transactions == null || transactions.isEmpty()) { %>
-        <p>You have no transactions yet.</p>
+
+    <% if (transactions == null) { %>
+        <p class="alert alert-error">Transactions data not found.</p>
+    <% } else if (transactions.isEmpty()) { %>
+        <p>No transactions found.</p>
     <% } else { %>
-    <% out.println("Transaction list size: " + (transactions != null ? transactions.size() : "null")); %>
-    
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Amount</th>
-                    <th>Description</th>
-                </tr>
-            </thead>
-            <tbody>
-                <% for (Transaction t : transactions) { %>
+        <p><strong>Total transactions:</strong> <%= transactions.size() %></p>
+
+        <div class="table-responsive">
+            <table class="transaction-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% for (Transaction t : transactions) { %>
                     <tr>
                         <td><%= t.getTransactionDate() %></td>
                         <td><%= t.getTransactionType() %></td>
                         <td>$<%= String.format("%.2f", t.getAmount()) %></td>
-                        <td><%= t.getDescription() %></td>
+                        <td><%= t.getDescription() == null ? "" : t.getDescription() %></td>
                     </tr>
-                <% } %>
-            </tbody>
-        </table>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
     <% } %>
-    <a href="dashboard.jsp">Back to Dashboard</a>
+
+    <div class="back-link">
+        <a href="dashboard.jsp" class="btn-secondary">← Back to Dashboard</a>
+    </div>
 </div>
 </body>
 </html>

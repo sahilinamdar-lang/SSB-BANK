@@ -7,17 +7,19 @@
         return;
     }
 %>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8" />
     <title>Transfer Funds - MyBank</title>
-    <link rel="stylesheet" href="style.css"/>
+     <link rel="stylesheet" href="<%= request.getContextPath() %>/css/style.css" />
 </head>
 <body>
 <div class="container">
     <h1>Transfer Money</h1>
     <form action="TransferServlet" method="post">
         <label for="recipientEmail">Recipient's Email</label>
-        <input type="text" name="recipientEmail" id="recipientEmail" placeholder="recipient@example.com" required/>
+        <input type="email" name="recipientEmail" id="recipientEmail" placeholder="recipient@example.com" required/>
 
         <label for="amount">Amount to Transfer</label>
         <input type="number" name="amount" id="amount" step="0.01" min="1" placeholder="Enter amount" required/>
@@ -33,7 +35,7 @@
         <div class="alert alert-error"><%= request.getAttribute("errorMessage") %></div>
     <% } %>
 
-    <a href="dashboard.jsp">Back to Dashboard</a>
+    <a href="dashboard.jsp" class="btn-secondary">← Back to Dashboard</a>
 </div>
 </body>
 </html>

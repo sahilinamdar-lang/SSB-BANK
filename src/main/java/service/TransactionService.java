@@ -86,18 +86,24 @@ public class TransactionService {
             conn.setAutoCommit(false);
 
             // Fetch accounts for both users
-            Account fromAccount = (Account) accountDAO.getAccountsByUserId(fromUserId);
-            Account toAccount = (Account) accountDAO.getAccountsByUserId(toUserId);
+            List<Account> fromAccounts = accountDAO.getAccountsByUserId(fromUserId);
+            List<Account> toAccounts = accountDAO.getAccountsByUserId(toUserId);
 
-            if (fromAccount == null) {
+            // Validate accounts existence
+            if (fromAccounts == null || fromAccounts.isEmpty()) {
                 System.out.println("ERROR: Source account not found for user ID " + fromUserId);
                 return false;
             }
-            if (toAccount == null) {
+            if (toAccounts == null || toAccounts.isEmpty()) {
                 System.out.println("ERROR: Destination account not found for user ID " + toUserId);
                 return false;
             }
 
+            // Pick first accounts from the lists
+            Account fromAccount = fromAccounts.get(0);
+            Account toAccount = toAccounts.get(0);
+
+            // Check sufficient funds
             if (fromAccount.getBalance() < amount) {
                 System.out.println("ERROR: Insufficient funds for transfer.");
                 return false;
@@ -125,6 +131,7 @@ public class TransactionService {
             depositTransaction.setTransactionDate(new Timestamp(System.currentTimeMillis()));
             boolean depositLogged = transactionDAO.addTransaction(depositTransaction, conn);
 
+            // Commit or rollback depending on success of updates and logs
             if (fromBalanceUpdated && withdrawLogged && toBalanceUpdated && depositLogged) {
                 conn.commit();
                 System.out.println("✅ TRANSFER COMMITTED SUCCESSFULLY");

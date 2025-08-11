@@ -77,4 +77,11 @@ public class Transaction {
 		this.description = description;
 	}
 
+	@Override
+	public String toString() {
+		return "Transaction [transactionId=" + transactionId + ", accountId=" + accountId + ", transactionType="
+				+ transactionType + ", amount=" + amount + ", transactionDate=" + transactionDate + ", description="
+				+ description + "]";
+	}
+
 }

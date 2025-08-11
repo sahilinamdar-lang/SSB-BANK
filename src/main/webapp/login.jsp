@@ -1,11 +1,12 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <html>
 <head>
-    <title>Login - MyBank</title>
-    <link rel="stylesheet" href="style.css"/>
+    <title>Login - SSBBank</title>
+  <link rel="stylesheet" href="<%= request.getContextPath() %>/css/style.css" />
+  
 </head>
 <body>
-<div class="container">
+<div class="container login-container">
     <h1>Welcome Back!</h1>
     <form action="LoginServlet" method="post">
         <label for="email">Email</label>
@@ -13,6 +14,12 @@
 
         <label for="password">Password</label>
         <input type="password" name="password" id="password" placeholder="Enter your password" required/>
+
+        <label for="role">Login as</label>
+        <select name="role" id="role" required>
+            <option value="USER">User</option>
+            <option value="MANAGER">Branch Manager</option>
+        </select>
 
         <input type="submit" value="Login"/>
     </form>

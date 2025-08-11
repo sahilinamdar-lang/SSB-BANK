@@ -1,21 +1,27 @@
 package controller;
 
+import model.Account;
 import model.User;
 import service.AccountService;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
+
+import dao.AccountDAO;
+
 import java.io.IOException;
+import java.util.List;
 
 @WebServlet("/WithdrawServlet")
 public class WithdrawServlet extends HttpServlet {
 
     private AccountService accountService;
-
+    private AccountDAO  accountDAO;
     @Override
     public void init() {
         accountService = new AccountService();
+        accountDAO = new AccountDAO();
     }
 
     @Override
@@ -31,11 +37,22 @@ public class WithdrawServlet extends HttpServlet {
 
         try {
             double amount = Double.parseDouble(amountStr);
+            List<Account> accounts = accountDAO.getAccountsByUserId(user.getUserId());
+            if (accounts == null || accounts.isEmpty()) {
+                req.setAttribute("errorMessage", "No account found for your profile.");
+                req.getRequestDispatcher("withdraw.jsp").forward(req, resp);
+                return;
+            }
 
-            boolean success = accountService.withdraw(user.getUserId(), amount, "Cash withdrawal");
-
+            // For simplicity, use the first account in the list
+            Account account = accounts.get(0);
+            
+            
+            
+//            boolean success = accountService.withdraw(user.getUserId(), amount, "Cash withdrawal");
+            boolean success = accountService.withdraw(account.getAccountId(), amount, "Cash Withdrawl");
             if (success) {
-                req.setAttribute("message", "Withdrawal successful: $" + amount);
+                req.setAttribute("message", "Withdrawal successful: $" +amount);
             } else {
                 req.setAttribute("errorMessage", "Withdrawal failed. Please check balance or try again.");
             }
