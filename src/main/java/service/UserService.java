@@ -158,7 +158,7 @@ public class UserService {
 
     private void sendEmail(String recipientEmail, String otp) {
         final String senderEmail = "inamdarsahil708@gmail.com";
-        final String appPassword = "bokz kvad tkyg caub";
+        final String appPassword = "your generated pass";
 
         Properties props = new Properties();
         props.put("mail.smtp.auth", "true");
