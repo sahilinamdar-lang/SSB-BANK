@@ -3,6 +3,7 @@ package dao;
 import model.Transaction;
 import util.DBConnection;
 
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,13 +11,14 @@ import java.util.List;
 public class TransactionDAO {
 
     public boolean addTransaction(Transaction transaction, Connection conn) throws SQLException {
-        String sql = "INSERT INTO transactions (account_id, amount, transaction_type, description, transaction_date) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO transactions (account_id, amount, transaction_type, description, transaction_date, balance_after_transaction) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, transaction.getAccountId());
-            ps.setDouble(2, transaction.getAmount());
+            ps.setBigDecimal(2, BigDecimal.valueOf(transaction.getAmount())); // safer for money
             ps.setString(3, transaction.getTransactionType());
             ps.setString(4, transaction.getDescription());
             ps.setTimestamp(5, transaction.getTransactionDate());
+            ps.setBigDecimal(6, BigDecimal.valueOf(transaction.getBalanceAfterTransaction()));
 
             return ps.executeUpdate() > 0;
         }
@@ -75,6 +77,7 @@ public class TransactionDAO {
         t.setTransactionType(rs.getString("transaction_type"));
         t.setDescription(rs.getString("description"));
         t.setTransactionDate(rs.getTimestamp("transaction_date"));
+        t.setBalanceAfterTransaction(rs.getDouble("balance_after_transaction"));
         return t;
     }
 }

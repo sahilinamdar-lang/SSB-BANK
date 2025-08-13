@@ -43,7 +43,7 @@
             <select name="role" id="role" required>
                 <option value="" selected disabled>Choose role</option>
                 <option value="USER">USER</option>          
-                <option value="BRANCH_MANAGER">Branch Manager</option>
+                <option value="MANAGER">Branch Manager</option>
             </select>
 
             <input type="submit" value="Register"/>

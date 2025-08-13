@@ -1,33 +1,34 @@
 package model;
 
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 
 public class Transaction {
-	private int transactionId;
-	private int accountId;
-	private String transactionType;
-	private double amount;
-	private Timestamp transactionDate;
-	private String description;
-	
-	
+    
+    private int transactionId;
+    private int accountId;
+    private String transactionType; // DEPOSIT, WITHDRAW, TRANSFER, BILL_PAYMENT, etc.
+    private double amount;
+    private Timestamp transactionDate;
+    private String description;
+    private double balanceAfterTransaction; // for mini statement display
 
-	
-	public Transaction() {
-		super();
-		// TODO Auto-generated constructor stub
-	}
+    // Constructors
+    public Transaction() {
+        super();
+    }
 
-	public Transaction(int transactionId, int accountId, String transactionType, double amount,
-			Timestamp transactionDate, String description) {
-		super();
-		this.transactionId = transactionId;
-		this.accountId = accountId;
-		this.transactionType = transactionType;
-		this.amount = amount;
-		this.transactionDate = transactionDate;
-		this.description = description;
-	}
+    public Transaction(int transactionId, int accountId, String transactionType, double amount,
+                       Timestamp transactionDate, String description, double balanceAfterTransaction) {
+        super();
+        this.transactionId = transactionId;
+        this.accountId = accountId;
+        this.transactionType = transactionType;
+        this.amount = amount;
+        this.transactionDate = transactionDate;
+        this.description = description;
+        this.balanceAfterTransaction = balanceAfterTransaction;
+    }
 
 	public int getTransactionId() {
 		return transactionId;
@@ -77,11 +78,20 @@ public class Transaction {
 		this.description = description;
 	}
 
+	public double getBalanceAfterTransaction() {
+		return balanceAfterTransaction;
+	}
+
+	public void setBalanceAfterTransaction(double balanceAfterTransaction) {
+		this.balanceAfterTransaction = balanceAfterTransaction;
+	}
+
 	@Override
 	public String toString() {
 		return "Transaction [transactionId=" + transactionId + ", accountId=" + accountId + ", transactionType="
 				+ transactionType + ", amount=" + amount + ", transactionDate=" + transactionDate + ", description="
-				+ description + "]";
+				+ description + ", balanceAfterTransaction=" + balanceAfterTransaction + "]";
 	}
 
-}
+} // Getters and Setters
+    

@@ -62,8 +62,7 @@ public class RegisterServlet extends HttpServlet {
         try {
             boolean isRegistered = userService.registerUser(user);
             if (isRegistered) {
-                request.setAttribute("message",
-                        "Registration successful! Your account is pending approval by a manager.");
+                request.setAttribute("message","Registration successful! Your account is pending approval by a manager.");
                 request.getRequestDispatcher("login.jsp").forward(request, response);
             } else {
                 request.setAttribute("errorMessage", "Registration failed: Email already exists or invalid data.");

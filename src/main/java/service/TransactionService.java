@@ -47,7 +47,11 @@ public class TransactionService {
             }
 
             boolean balanceUpdated = accountDAO.updateBalance(transaction.getAccountId(), newBalance, conn);
+
+            // Set extra fields before saving transaction
             transaction.setTransactionDate(new Timestamp(System.currentTimeMillis()));
+            transaction.setBalanceAfterTransaction(newBalance);
+
             boolean transactionAdded = transactionDAO.addTransaction(transaction, conn);
 
             if (balanceUpdated && transactionAdded) {
@@ -89,7 +93,6 @@ public class TransactionService {
             List<Account> fromAccounts = accountDAO.getAccountsByUserId(fromUserId);
             List<Account> toAccounts = accountDAO.getAccountsByUserId(toUserId);
 
-            // Validate accounts existence
             if (fromAccounts == null || fromAccounts.isEmpty()) {
                 System.out.println("ERROR: Source account not found for user ID " + fromUserId);
                 return false;
@@ -99,7 +102,6 @@ public class TransactionService {
                 return false;
             }
 
-            // Pick first accounts from the lists
             Account fromAccount = fromAccounts.get(0);
             Account toAccount = toAccounts.get(0);
 
@@ -109,29 +111,35 @@ public class TransactionService {
                 return false;
             }
 
-            // Withdraw from source account (negative amount)
+            // Withdraw from source account
             double fromNewBalance = fromAccount.getBalance() - amount;
             boolean fromBalanceUpdated = accountDAO.updateBalance(fromAccount.getAccountId(), fromNewBalance, conn);
+
             Transaction withdrawTransaction = new Transaction();
             withdrawTransaction.setAccountId(fromAccount.getAccountId());
             withdrawTransaction.setAmount(-amount);
             withdrawTransaction.setTransactionType("TRANSFER_OUT");
             withdrawTransaction.setDescription(description);
             withdrawTransaction.setTransactionDate(new Timestamp(System.currentTimeMillis()));
+            withdrawTransaction.setBalanceAfterTransaction(fromNewBalance);
+
             boolean withdrawLogged = transactionDAO.addTransaction(withdrawTransaction, conn);
 
             // Deposit to destination account
             double toNewBalance = toAccount.getBalance() + amount;
             boolean toBalanceUpdated = accountDAO.updateBalance(toAccount.getAccountId(), toNewBalance, conn);
+
             Transaction depositTransaction = new Transaction();
             depositTransaction.setAccountId(toAccount.getAccountId());
             depositTransaction.setAmount(amount);
             depositTransaction.setTransactionType("TRANSFER_IN");
             depositTransaction.setDescription(description);
             depositTransaction.setTransactionDate(new Timestamp(System.currentTimeMillis()));
+            depositTransaction.setBalanceAfterTransaction(toNewBalance);
+
             boolean depositLogged = transactionDAO.addTransaction(depositTransaction, conn);
 
-            // Commit or rollback depending on success of updates and logs
+            // Commit or rollback
             if (fromBalanceUpdated && withdrawLogged && toBalanceUpdated && depositLogged) {
                 conn.commit();
                 System.out.println("✅ TRANSFER COMMITTED SUCCESSFULLY");
@@ -149,8 +157,7 @@ public class TransactionService {
         }
     }
 
-    // Other utility methods:
-
+    // Utility methods
     public List<Transaction> getTransactionsByUserId(int userId) throws SQLException, ClassNotFoundException {
         return transactionDAO.getTransactionsByUserId(userId);
     }

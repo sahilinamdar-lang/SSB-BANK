@@ -9,6 +9,12 @@ import java.util.List;
 
 public class UserDAO {
 
+    public UserDAO() {
+        super();
+    }
+
+    // ----------------- User Methods -----------------
+
     public User getUserByEmail(String email) throws SQLException, ClassNotFoundException {
         String sql = "SELECT * FROM users WHERE email = ?";
         try (Connection conn = DBConnection.getConnection();
@@ -164,5 +170,51 @@ public class UserDAO {
                 rs.getString("approval_status"),
                 rs.getString("role")
         );
+    }
+
+    // ----------------- OTP Methods -----------------
+
+    public void saveOtp(int userId, String otp, Timestamp expiry) throws SQLException, ClassNotFoundException {
+        String sql = "UPDATE users SET otp = ?, otp_expiry = ? WHERE user_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, otp);
+            ps.setTimestamp(2, expiry);
+            ps.setInt(3, userId);
+            ps.executeUpdate();
+        }
+    }
+
+    public String getOtpByUserId(int userId) throws SQLException, ClassNotFoundException {
+        String sql = "SELECT otp FROM users WHERE user_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getString("otp");
+            }
+        }
+        return null;
+    }
+
+    public Timestamp getOtpExpiryByUserId(int userId) throws SQLException, ClassNotFoundException {
+        String sql = "SELECT otp_expiry FROM users WHERE user_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getTimestamp("otp_expiry");
+            }
+        }
+        return null;
+    }
+
+    public void clearOtp(int userId) throws SQLException, ClassNotFoundException {
+        String sql = "UPDATE users SET otp = NULL, otp_expiry = NULL WHERE user_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.executeUpdate();
+        }
     }
 }
